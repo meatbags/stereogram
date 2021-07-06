@@ -1,0 +1,21 @@
+.section {
+  display: flex;
+  flex-wrap: wrap;
+
+  .section__item {
+    @include padding(1.5, 1.125);
+    margin-bottom: $space;
+    margin-right: $space;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    //border-radius: $space;
+    background: $lightGrey;
+    //box-shadow: 4px 4px 8px rgba(black, 0.25);
+
+    &.section__item--output {
+      width: 100%;
+    }
+  }
+}

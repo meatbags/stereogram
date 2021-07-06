@@ -17,5 +17,15 @@
         width: auto;
       }
     }
+
+    .control__input {
+      width: 60%;
+      display: flex;
+
+      input {
+        width: 100%;
+        margin-right: $space / 2;
+      }
+    }
   }
 }

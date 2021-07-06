@@ -52,6 +52,21 @@ class Stereogram {
       let file = document.querySelector('#input-depth-map').files[0];
       this.setCanvasImageFromFile(this.ctxDepthMap, file);
     };
+    document.querySelector('#button-width-auto').onclick = () => {
+      let n = parseInt(document.querySelector('#input-strips').value);
+      let width = (n + 1) * this.cvsTile.width;
+      let ratio = this.cvsDepthMap.height / this.cvsDepthMap.width;
+      let height = Math.round((n * this.cvsTile.width) * ratio);
+      document.querySelector('#input-width').value = width;
+      document.querySelector('#input-height').value = height;
+    };
+    document.querySelector('#button-scale-apply').onclick = () => {
+      let width = parseInt(document.querySelector('#input-width').value);
+      let height = parseInt(document.querySelector('#input-height').value);
+      let scale = parseFloat(document.querySelector('#input-scale-dimensions').value);
+      document.querySelector('#input-width').value = width * scale;
+      document.querySelector('#input-height').value = height * scale;
+    };
 
     // run algorithm
     this._generateImage();
@@ -71,7 +86,7 @@ class Stereogram {
     this.state.outputStripWidth = this.cvsOutput.width / (this.state.strips + 1);
     this.state.depthScale = parseFloat(document.querySelector('#input-depth-scale').value);
     this.state.invert = document.querySelector('#input-invert').checked ? true : false;
-    this.state.interpolation = document.querySelector('#input-interpolation').checked ? true : false;
+    this.state.interpolation = document.querySelector('#input-interpolation').value;
     this.state.bubble = document.querySelector('#input-bubble').checked ? true : false;
     this.state.tilt = document.querySelector('#input-tilt').checked ? true : false;
 
@@ -155,7 +170,7 @@ class Stereogram {
     let sampY = Math.floor(y % data.height);
 
     // no interpolation
-    if (!this.state.interpolation || x - sampX == 0) {
+    if (this.state.interpolation == 'none' || x - sampX == 0) {
       let index = (sampY * data.width + sampX) * 4;
       return [
         data.data[index + 0],
@@ -164,17 +179,31 @@ class Stereogram {
         data.data[index + 3],
       ];
 
-    // linear interpolation
+    // perform interpolation
     } else {
       let pixelA = this.getPixel(data, sampX, sampY);
       let pixelB = this.getPixel(data, sampX + 1, sampY);
       let t = x - sampX;
-      return [
-        Blend(pixelA[0], pixelB[0], t),
-        Blend(pixelA[1], pixelB[1], t),
-        Blend(pixelA[2], pixelB[2], t),
-        Blend(pixelA[3], pixelB[3], t)
-      ];
+      let r, g, b, a;
+      if (this.state.interpolation == 'nearest-neighbour') {
+        if (t < 0.5) {
+          r = pixelA[0];
+          g = pixelA[1];
+          b = pixelA[2];
+          a = pixelA[3];
+        } else {
+          r = pixelB[0];
+          g = pixelB[1];
+          b = pixelB[2];
+          a = pixelB[3];
+        }
+      } else if (this.state.interpolation == 'linear') {
+        r = Blend(pixelA[0], pixelB[0], t);
+        g = Blend(pixelA[1], pixelB[1], t);
+        b = Blend(pixelA[2], pixelB[2], t);
+        a = Blend(pixelA[3], pixelB[3], t);
+      }
+      return [r, g, b, a];
     }
   }
 
