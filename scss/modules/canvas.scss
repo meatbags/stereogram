@@ -1,7 +1,11 @@
 .canvas-wrapper {
   background: darken($lightGrey, 10%);
-  width: 100%;
-  height: 100%;
+  width: 320px;
+  height: 320px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
 }
 
 canvas {
