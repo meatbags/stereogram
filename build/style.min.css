@@ -61,4 +61,6 @@ canvas {
     background: #888; }
     .section .section__item.section__item--output {
       width: 100%; }
+    .section .section__item#drop-input-tile.drag-over, .section .section__item#drop-input-depth-map.drag-over {
+      opacity: 0.5; }
 

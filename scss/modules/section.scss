@@ -17,5 +17,11 @@
     &.section__item--output {
       width: 100%;
     }
+
+    &#drop-input-tile, &#drop-input-depth-map {
+      &.drag-over {
+        opacity: 0.5;
+      }
+    }
   }
 }

@@ -40,32 +40,77 @@ class Stereogram {
     this.ctxOutput = this.cvsOutput.getContext('2d');
 
     // ui
-    document.querySelector('#button-generate-image').onclick = () => {
-      document.querySelector('#msg').innerText = 'Working...';
+    this.el = {};
+    this.el.buttonGenerateImage = document.querySelector('#button-generate-image');
+    this.el.buttonGenerateImageMessage = document.querySelector('#button-generate-image-message');
+    this.el.fileInputTileImage = document.querySelector('#input-tile');
+    this.el.fileInputDepthMapImage = document.querySelector('#input-depth-map');
+    this.el.dropContainerTileImage = document.querySelector('#drop-input-tile');
+    this.el.dropContainerDepthMapImage = document.querySelector('#drop-input-depth-map');
+    this.el.buttonDimensionsAuto = document.querySelector('#button-dimensions-auto');
+    this.el.inputWidth = document.querySelector('#input-width');
+    this.el.inputHeight = document.querySelector('#input-height');
+    this.el.inputStrips = document.querySelector('#input-strips');
+    this.el.inputScaleDimensions = document.querySelector('#input-scale-dimensions');
+    this.el.buttonScaleDimensions = document.querySelector('#button-scale-apply');
+    this.el.selectInterpolation = document.querySelector('#input-interpolation');
+    this.el.selectDepthModel = document.querySelector('#input-depth-model');
+
+    // bind ui
+    this.el.buttonGenerateImage.onclick = () => {
+      this.el.buttonGenerateImageMessage.innerText = 'Working...';
       setTimeout(() => { this._generateImage(); }, 50);
     };
-    document.querySelector('#input-tile').onchange = () => {
-      let file = document.querySelector('#input-tile').files[0];
+    this.el.fileInputTileImage.onchange = () => {
+      let file = this.el.fileInputTileImage.files[0];
       this.setCanvasImageFromFile(this.ctxTile, file);
     };
-    document.querySelector('#input-depth-map').onchange = () => {
-      let file = document.querySelector('#input-depth-map').files[0];
+    this.el.fileInputDepthMapImage.onchange = () => {
+      let file = this.el.fileInputDepthMapImage.files[0];
       this.setCanvasImageFromFile(this.ctxDepthMap, file);
     };
-    document.querySelector('#button-width-auto').onclick = () => {
-      let n = parseInt(document.querySelector('#input-strips').value);
+    this.el.dropContainerTileImage.ondragover = this.el.dropContainerTileImage.ondragenter = evt => {
+      evt.preventDefault();
+      this.el.dropContainerTileImage.classList.add('drag-over');
+    };
+    this.el.dropContainerTileImage.onmouseleave = this.el.dropContainerTileImage.onmouseup = () => {
+      this.el.dropContainerTileImage.classList.remove('drag-over');
+    };
+    this.el.dropContainerTileImage.ondrop = evt => {
+      evt.preventDefault();
+      if (evt.dataTransfer.items) {
+        let file = evt.dataTransfer.items[0].getAsFile();
+        this.setCanvasImageFromFile(this.ctxTile, file);
+      }
+    };
+    this.el.dropContainerDepthMapImage.ondragover = this.el.dropContainerDepthMapImage.ondragenter = evt => {
+      evt.preventDefault();
+      this.el.dropContainerDepthMapImage.classList.add('drag-over');
+    };
+    this.el.dropContainerDepthMapImage.onmouseleave = this.el.dropContainerDepthMapImage.onmouseup = () => {
+      this.el.dropContainerDepthMapImage.classList.remove('drag-over');
+    };
+    this.el.dropContainerDepthMapImage.ondrop = evt => {
+      evt.preventDefault();
+      if (evt.dataTransfer.items) {
+        let file = evt.dataTransfer.items[0].getAsFile();
+        this.setCanvasImageFromFile(this.ctxDepthMap, file);
+      }
+    };
+    this.el.buttonDimensionsAuto.onclick = () => {
+      let n = parseInt(this.el.inputStrips.value);
       let width = (n + 1) * this.cvsTile.width;
       let ratio = this.cvsDepthMap.height / this.cvsDepthMap.width;
       let height = Math.round((n * this.cvsTile.width) * ratio);
-      document.querySelector('#input-width').value = width;
-      document.querySelector('#input-height').value = height;
+      this.el.inputWidth.value = width;
+      this.el.inputHeight.value = height;
     };
-    document.querySelector('#button-scale-apply').onclick = () => {
-      let width = parseInt(document.querySelector('#input-width').value);
-      let height = parseInt(document.querySelector('#input-height').value);
-      let scale = parseFloat(document.querySelector('#input-scale-dimensions').value);
-      document.querySelector('#input-width').value = width * scale;
-      document.querySelector('#input-height').value = height * scale;
+    this.el.buttonScaleDimensions.onclick = () => {
+      let width = parseInt(this.el.inputWidth.value);
+      let height = parseInt(this.el.inputHeight.value);
+      let scale = parseFloat(this.el.inputScaleDimensions.value);
+      this.el.inputWidth.value = width * scale;
+      this.el.inputHeight.value = height * scale;
     };
 
     // run algorithm
@@ -74,19 +119,20 @@ class Stereogram {
 
   _generateImage() {
     // set canvas size
-    this.cvsOutput.width = parseInt(document.querySelector('#input-width').value);
-    this.cvsOutput.height = parseInt(document.querySelector('#input-height').value);
+    this.cvsOutput.width = parseInt(this.el.inputWidth.value);
+    this.cvsOutput.height = parseInt(this.el.inputHeight.value);
 
     // set props from ui
     this.state = {};
-    this.state.strips = parseInt(document.querySelector('#input-strips').value);
+    this.state.strips = parseInt(this.el.inputStrips.value);
     this.state.tileWidth = this.cvsTile.width;
     this.state.tileHeight = this.cvsTile.height;
     this.state.depthStripWidth = this.cvsDepthMap.width / this.state.strips;
     this.state.outputStripWidth = this.cvsOutput.width / (this.state.strips + 1);
     this.state.depthScale = parseFloat(document.querySelector('#input-depth-scale').value);
     this.state.invert = document.querySelector('#input-invert').checked ? true : false;
-    this.state.interpolation = document.querySelector('#input-interpolation').value;
+    this.state.depthModel = this.el.selectDepthModel.value;
+    this.state.interpolation = this.el.selectInterpolation.value;
     this.state.bubble = document.querySelector('#input-bubble').checked ? true : false;
     this.state.tilt = document.querySelector('#input-tilt').checked ? true : false;
 
@@ -100,7 +146,7 @@ class Stereogram {
     this._process();
 
     // finished
-    document.querySelector('#msg').innerText = '';
+    this.el.buttonGenerateImageMessage.innerText = '';
   }
 
   _process() {
@@ -197,7 +243,13 @@ class Stereogram {
           b = pixelB[2];
           a = pixelB[3];
         }
-      } else if (this.state.interpolation == 'linear') {
+      } else if (this.state.interpolation == 'bilinear') {
+        r = Blend(pixelA[0], pixelB[0], t);
+        g = Blend(pixelA[1], pixelB[1], t);
+        b = Blend(pixelA[2], pixelB[2], t);
+        a = Blend(pixelA[3], pixelB[3], t);
+      } else if (this.state.interpolation == 'bicubic') {
+        t = t*t*t;
         r = Blend(pixelA[0], pixelB[0], t);
         g = Blend(pixelA[1], pixelB[1], t);
         b = Blend(pixelA[2], pixelB[2], t);
