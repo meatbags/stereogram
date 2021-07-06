@@ -2,6 +2,8 @@
 
 import Blend from '../util/blend';
 import Clamp from '../util/clamp';
+import Easing from '../util/easing';
+import Wrap from '../util/wrap';
 
 class Stereogram {
   constructor() {
@@ -55,11 +57,14 @@ class Stereogram {
     this.el.buttonScaleDimensions = document.querySelector('#button-scale-apply');
     this.el.selectInterpolation = document.querySelector('#input-interpolation');
     this.el.selectDepthModel = document.querySelector('#input-depth-model');
+    this.el.depthMapOverlay = document.querySelector('#depth-map-overlay');
 
     // bind ui
     this.el.buttonGenerateImage.onclick = () => {
       this.el.buttonGenerateImageMessage.innerText = 'Working...';
-      setTimeout(() => { this._generateImage(); }, 50);
+      setTimeout(() => {
+        this.generateImage();
+      }, 50);
     };
     this.el.fileInputTileImage.onchange = () => {
       let file = this.el.fileInputTileImage.files[0];
@@ -112,12 +117,18 @@ class Stereogram {
       this.el.inputWidth.value = width * scale;
       this.el.inputHeight.value = height * scale;
     };
+    this.el.inputStrips.onchange = () => {
+      this.updateDepthMapOverlay();
+    };
 
-    // run algorithm
-    this._generateImage();
+    // set up
+    this.updateDepthMapOverlay();
+
+    // run
+    this.generateImage();
   }
 
-  _generateImage() {
+  generateImage() {
     // set canvas size
     this.cvsOutput.width = parseInt(this.el.inputWidth.value);
     this.cvsOutput.height = parseInt(this.el.inputHeight.value);
@@ -133,8 +144,6 @@ class Stereogram {
     this.state.invert = document.querySelector('#input-invert').checked ? true : false;
     this.state.depthModel = this.el.selectDepthModel.value;
     this.state.interpolation = this.el.selectInterpolation.value;
-    this.state.bubble = document.querySelector('#input-bubble').checked ? true : false;
-    this.state.tilt = document.querySelector('#input-tilt').checked ? true : false;
 
     // get image data
     this.data = {};
@@ -143,24 +152,20 @@ class Stereogram {
     this.data.output = this.ctxOutput.createImageData(this.cvsOutput.width, this.cvsOutput.height);
 
     // generate image
-    this._process();
-
-    // finished
-    this.el.buttonGenerateImageMessage.innerText = '';
-  }
-
-  _process() {
     for (let x=0; x<this.cvsOutput.width; x++) {
       for (let y=0; y<this.cvsOutput.height; y++) {
-        this._compute(x, y);
+        this.compute(x, y);
       }
     }
 
     // draw
     this.ctxOutput.putImageData(this.data.output, 0, 0);
+
+    // finished
+    this.el.buttonGenerateImageMessage.innerText = '';
   }
 
-  _compute(x, y) {
+  compute(x, y) {
     let pixel = null;
 
     // get initial tile coordinate
@@ -184,12 +189,6 @@ class Stereogram {
 
       // compute x offset
       let xOffset = depth * this.state.depthScale;
-      if (this.state.bubble) {
-        xOffset *= Math.abs(Math.cos(nX * Math.PI)); // when nx=[0, 0.5, 1] offset=[+max, 0, +max]
-      }
-      if (this.state.tilt) {
-        xOffset *= Math.cos(nX * Math.PI); // when nx=[0, 0.5, 1] offset=[+max, 0, -max]
-      }
 
       // get previous strip
       pixel = this.getPixel(this.data.output, x - this.state.outputStripWidth + xOffset, y);
@@ -206,7 +205,13 @@ class Stereogram {
   }
 
   getDepth(pixel) {
-    return (pixel[0] + pixel[1] + pixel[2]) / (255 * 3);
+    let d = (pixel[0] + pixel[1] + pixel[2]) / (255 * 3);
+    switch (this.state.depthModel) {
+      case 'linear': return d; break;
+      case 'quadratic': return Easing.quadratic(d); break;
+      case 'cubic': return Easing.cubic(d); break;
+      default: return d;
+    }
   }
 
   getPixel(data, x, y) {
@@ -225,42 +230,36 @@ class Stereogram {
         data.data[index + 3],
       ];
 
-    // perform interpolation
+    // interpolation
     } else {
       let pixelA = this.getPixel(data, sampX, sampY);
       let pixelB = this.getPixel(data, sampX + 1, sampY);
       let t = x - sampX;
-      let r, g, b, a;
-      if (this.state.interpolation == 'nearest-neighbour') {
-        if (t < 0.5) {
-          r = pixelA[0];
-          g = pixelA[1];
-          b = pixelA[2];
-          a = pixelA[3];
-        } else {
-          r = pixelB[0];
-          g = pixelB[1];
-          b = pixelB[2];
-          a = pixelB[3];
-        }
-      } else if (this.state.interpolation == 'bilinear') {
-        r = Blend(pixelA[0], pixelB[0], t);
-        g = Blend(pixelA[1], pixelB[1], t);
-        b = Blend(pixelA[2], pixelB[2], t);
-        a = Blend(pixelA[3], pixelB[3], t);
-      } else if (this.state.interpolation == 'bicubic') {
-        t = t*t*t;
-        r = Blend(pixelA[0], pixelB[0], t);
-        g = Blend(pixelA[1], pixelB[1], t);
-        b = Blend(pixelA[2], pixelB[2], t);
-        a = Blend(pixelA[3], pixelB[3], t);
+      switch (this.state.interpolation) {
+        case 'nearest-neighbour':
+          return t < 0.5 ? pixelA : pixelB;
+          break;
+        case 'bilinear':
+          return [
+            Blend(pixelA[0], pixelB[0], t),
+            Blend(pixelA[1], pixelB[1], t),
+            Blend(pixelA[2], pixelB[2], t),
+            Blend(pixelA[3], pixelB[3], t)
+          ];
+          break;
+        case 'bicubic':
+          t = Easing.cubic(t);
+          return [
+            Blend(pixelA[0], pixelB[0], t),
+            Blend(pixelA[1], pixelB[1], t),
+            Blend(pixelA[2], pixelB[2], t),
+            Blend(pixelA[3], pixelB[3], t)
+          ];
+          break;
+        default:
+          return pixelA;
       }
-      return [r, g, b, a];
     }
-  }
-
-  blend(a, b, t) {
-    return a + (b - a) * t;
   }
 
   setCanvasImageFromFile(ctx, file) {
@@ -271,10 +270,19 @@ class Stereogram {
         ctx.canvas.width = img.naturalWidth;
         ctx.canvas.height = img.naturalHeight;
         ctx.drawImage(img, 0, 0);
+        this.updateDepthMapOverlay();
       };
       img.src = evt.target.result;
     };
     reader.readAsDataURL(file);
+  }
+
+  updateDepthMapOverlay() {
+    let rect = this.cvsDepthMap.getBoundingClientRect();
+    this.el.depthMapOverlay.style.width = `${rect.width}px`;
+    this.el.depthMapOverlay.style.height = `${rect.height}px`;
+    let x = rect.width / parseInt(this.el.inputStrips.value);
+    this.el.depthMapOverlay.style.backgroundSize = `${x}px 100%`;
   }
 }
 

@@ -3,16 +3,23 @@
   flex-wrap: wrap;
 
   .section__item {
-    @include padding(1.5, 1.125);
     margin-bottom: $space;
     margin-right: $space;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
     align-items: flex-start;
-    //border-radius: $space;
     background: $lightGrey;
-    //box-shadow: 4px 4px 8px rgba(black, 0.25);
+
+    .section__header {
+      width: 100%;
+      @include padding(1.25, 0.75);
+      background: darken($grey, 10%);
+    }
+
+    .section__body {
+      @include padding(1.25, 1.25);
+    }
 
     &.section__item--output {
       width: 100%;
