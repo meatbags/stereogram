@@ -45,8 +45,8 @@
           <div class='control'>
             <label>Interpolation:</label>
             <select id='input-interpolation' value='nearest-neighbour'>
-              <option value='none' selected>None</option>
-              <option value='nearest-neighbour'>Nearest Neighbour</option>
+              <option value='none'>None</option>
+              <option value='nearest-neighbour' selected>Nearest Neighbour</option>
               <option value='linear'>Linear</option>
             </select>
           </div>
