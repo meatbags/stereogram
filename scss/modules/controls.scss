@@ -1,0 +1,21 @@
+.controls {
+  width: 400px;
+
+  .control {
+    @include padding(0, 0.25);
+    display: flex;
+
+    label {
+      width: 40%;
+    }
+
+    input {
+      width: 60%;
+
+      &[type="checkbox"] {
+        margin: 0;
+        width: auto;
+      }
+    }
+  }
+}
