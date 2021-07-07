@@ -53,11 +53,14 @@ class Stereogram {
     this.el.inputWidth = document.querySelector('#input-width');
     this.el.inputHeight = document.querySelector('#input-height');
     this.el.inputStrips = document.querySelector('#input-strips');
+    this.el.inputDepthScale = document.querySelector('#input-depth-scale');
     this.el.inputScaleDimensions = document.querySelector('#input-scale-dimensions');
     this.el.buttonScaleDimensions = document.querySelector('#button-scale-apply');
     this.el.selectInterpolation = document.querySelector('#input-interpolation');
     this.el.selectDepthModel = document.querySelector('#input-depth-model');
     this.el.depthMapOverlay = document.querySelector('#depth-map-overlay');
+    this.el.checkboxInvert = document.querySelector('#input-invert');
+    this.el.checkboxPreserveTileRatio = document.querySelector('#input-preserve-tile-ratio');
 
     // bind ui
     this.el.buttonGenerateImage.onclick = () => {
@@ -138,10 +141,12 @@ class Stereogram {
     this.state.strips = parseInt(this.el.inputStrips.value);
     this.state.tileWidth = this.cvsTile.width;
     this.state.tileHeight = this.cvsTile.height;
+    this.state.tileRatio = this.state.tileHeight / this.state.tileWidth;
     this.state.depthStripWidth = this.cvsDepthMap.width / this.state.strips;
     this.state.outputStripWidth = this.cvsOutput.width / (this.state.strips + 1);
-    this.state.depthScale = parseFloat(document.querySelector('#input-depth-scale').value);
-    this.state.invert = document.querySelector('#input-invert').checked ? true : false;
+    this.state.depthScale = parseFloat(this.el.inputDepthScale.value);
+    this.state.invert = this.el.checkboxInvert.checked ? true : false;
+    this.state.preserveTileRatio = this.el.checkboxPreserveTileRatio.checked ? true : false;
     this.state.depthModel = this.el.selectDepthModel.value;
     this.state.interpolation = this.el.selectInterpolation.value;
 
@@ -173,6 +178,11 @@ class Stereogram {
       let nX = (x % this.state.outputStripWidth) / this.state.outputStripWidth;
       let tileX = nX * this.state.tileWidth;
       let tileY = y % this.state.tileHeight;
+      if (this.state.preserveTileRatio) {
+        let relHeight = this.state.outputStripWidth * this.state.tileRatio;
+        let nY = (y % relHeight) / relHeight;
+        tileY = nY * this.state.tileHeight;
+      }
       pixel = this.getPixel(this.data.tile, tileX, tileY);
 
     // get previous strip value
@@ -221,7 +231,7 @@ class Stereogram {
     let sampY = Math.floor(y % data.height);
 
     // no interpolation
-    if (this.state.interpolation == 'none' || x - sampX == 0) {
+    if (this.state.interpolation == 'none' || (x - sampX == 0 && y - sampY == 0)) {
       let index = (sampY * data.width + sampX) * 4;
       return [
         data.data[index + 0],
@@ -232,38 +242,49 @@ class Stereogram {
 
     // interpolation
     } else {
-      let pixelA = this.getPixel(data, sampX, sampY);
-      let pixelB = this.getPixel(data, sampX + 1, sampY);
-      let t = x - sampX;
+      let tx = x - sampX;
+      let ty = y - sampY;
       switch (this.state.interpolation) {
-        case 'nearest-neighbour':
-          return t < 0.5 ? pixelA : pixelB;
+        case 'nearest-neighbour': {
+          let offX = tx < 0.5 ? 0 : 1;
+          let offY = ty < 0.5 ? 0 : 1;
+          return this.getPixel(data, sampX + offX, sampY + offY);
           break;
-        case 'bilinear':
-          return [
-            Blend(pixelA[0], pixelB[0], t),
-            Blend(pixelA[1], pixelB[1], t),
-            Blend(pixelA[2], pixelB[2], t),
-            Blend(pixelA[3], pixelB[3], t)
-          ];
+        }
+        case 'bilinear': {
+          let TL = this.getPixel(data, sampX, sampY);
+          let TR = this.getPixel(data, sampX + 1, sampY);
+          let BL = this.getPixel(data, sampX, sampY + 1);
+          let BR = this.getPixel(data, sampX + 1, sampY + 1);
+          let R = Blend(Blend(TL[0], TR[0], tx), Blend(BL[0], BL[0], tx), ty);
+          let G = Blend(Blend(TL[1], TR[1], tx), Blend(BL[1], BL[1], tx), ty);
+          let B = Blend(Blend(TL[2], TR[2], tx), Blend(BL[2], BL[2], tx), ty);
+          let A = Blend(Blend(TL[3], TR[3], tx), Blend(BL[3], BL[3], tx), ty);
+          return [R, G, B, A];
           break;
-        case 'bicubic':
-          t = Easing.cubic(t);
-          return [
-            Blend(pixelA[0], pixelB[0], t),
-            Blend(pixelA[1], pixelB[1], t),
-            Blend(pixelA[2], pixelB[2], t),
-            Blend(pixelA[3], pixelB[3], t)
-          ];
+        }
+        case 'bicubic': {
+          tx = Easing.cubic(tx);
+          ty = Easing.cubic(ty);
+          let TL = this.getPixel(data, sampX, sampY);
+          let TR = this.getPixel(data, sampX + 1, sampY);
+          let BL = this.getPixel(data, sampX, sampY + 1);
+          let BR = this.getPixel(data, sampX + 1, sampY + 1);
+          let R = Blend(Blend(TL[0], TR[0], tx), Blend(BL[0], BL[0], tx), ty);
+          let G = Blend(Blend(TL[1], TR[1], tx), Blend(BL[1], BL[1], tx), ty);
+          let B = Blend(Blend(TL[2], TR[2], tx), Blend(BL[2], BL[2], tx), ty);
+          let A = Blend(Blend(TL[3], TR[3], tx), Blend(BL[3], BL[3], tx), ty);
+          return [R, G, B, A];
           break;
+        }
         default:
-          return pixelA;
+          return this.getPixel(data, sampX, sampY);
       }
     }
   }
 
   setCanvasImageFromFile(ctx, file) {
-    var reader = new FileReader();
+    let reader = new FileReader();
     reader.onload = evt => {
       let img = new Image();
       img.onload = () => {

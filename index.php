@@ -65,6 +65,7 @@
                 <option value='bicubic'>Bicubic</option>
               </select>
             </div>
+            <div class='control'><label>Preserve Tile Ratio:</label><input id='input-preserve-tile-ratio' type='checkbox'></div>
             <div class='control'><label>Invert Depth:</label><input id='input-invert' type='checkbox'></div>
           </div>
           <br />
