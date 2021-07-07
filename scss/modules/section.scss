@@ -21,14 +21,13 @@
       @include padding(1.25, 1.25);
     }
 
-    &.section__item--output {
-      width: 100%;
-    }
+    &.section__item--output {}
+  }
 
-    &#drop-input-tile, &#drop-input-depth-map {
-      &.drag-over {
-        opacity: 0.5;
-      }
+  #drop-input-tile, #drop-input-depth-map {
+    &.drag-over {
+      opacity: 0.5;
+      outline: 1px solid red;
     }
   }
 }

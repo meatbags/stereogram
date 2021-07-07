@@ -7,44 +7,45 @@ import Wrap from '../util/wrap';
 
 class Stereogram {
   constructor() {
-    // make tile
-    this.cvsTile = document.querySelector('#canvas-tile');
-    this.cvsTile.width = 100;
-    this.cvsTile.height = 100;
-    this.ctxTile = this.cvsTile.getContext('2d');
-    this.ctxTile.fillStyle = '#fff';
-    this.ctxTile.fillRect(0, 0, this.cvsTile.width, this.cvsTile.height);
-    this.ctxTile.fillStyle = '#000';
-    for (let x=0; x<this.cvsTile.width; x++) {
-      for (let y=0; y<this.cvsTile.height; y++) {
+    // init canvases
+    this.canvas = {};
+    this.ctx = {};
+    this.canvas.tile = document.querySelector('#canvas-tile');
+    this.canvas.depthMap = document.querySelector('#canvas-depth-map');
+    this.canvas.output = document.querySelector('#canvas-output');
+    this.ctx.tile = this.canvas.tile.getContext('2d');
+    this.ctx.depthMap = this.canvas.depthMap.getContext('2d');
+    this.ctx.output = this.canvas.output.getContext('2d');
+
+    // create noise tile
+    this.canvas.tile.width = 100;
+    this.canvas.tile.height = 100;
+    this.ctx.tile.fillStyle = '#fff';
+    this.ctx.tile.fillRect(0, 0, this.canvas.tile.width, this.canvas.tile.height);
+    this.ctx.tile.fillStyle = '#000';
+    for (let x=0; x<this.canvas.tile.width; x++) {
+      for (let y=0; y<this.canvas.tile.height; y++) {
         if (Math.random() > 0.5) {
-          this.ctxTile.fillRect(x, y, 1, 1);
+          this.ctx.tile.fillRect(x, y, 1, 1);
         }
       }
     }
 
-    // make depth
-    this.cvsDepthMap = document.querySelector('#canvas-depth-map');
-    this.cvsDepthMap.width = 200;
-    this.cvsDepthMap.height = 200;
-    this.ctxDepthMap = this.cvsDepthMap.getContext('2d');
-    this.ctxDepthMap.fillStyle = '#000';
-    this.ctxDepthMap.fillRect(0, 0, this.cvsDepthMap.width, this.cvsDepthMap.height);
-    this.ctxDepthMap.fillStyle = '#fff';
-    this.ctxDepthMap.beginPath();
-    this.ctxDepthMap.arc(100, 100, 50, 0, Math.PI*2);
-    this.ctxDepthMap.fill();
-
-    // make result
-    this.cvsOutput = document.querySelector('#canvas-output');
-    this.cvsOutput.width = 400;
-    this.cvsOutput.height = 400;
-    this.ctxOutput = this.cvsOutput.getContext('2d');
+    // create depth map
+    this.canvas.depthMap.width = 150;
+    this.canvas.depthMap.height = 150;
+    this.ctx.depthMap.fillStyle = '#000';
+    this.ctx.depthMap.fillRect(0, 0, this.canvas.depthMap.width, this.canvas.depthMap.height);
+    this.ctx.depthMap.fillStyle = '#fff';
+    this.ctx.depthMap.beginPath();
+    this.ctx.depthMap.arc(this.canvas.depthMap.width/2, this.canvas.depthMap.height/2, this.canvas.depthMap.height/4, 0, Math.PI*2);
+    this.ctx.depthMap.fill();
 
     // ui
     this.el = {};
     this.el.buttonGenerateImage = document.querySelector('#button-generate-image');
-    this.el.buttonGenerateImageMessage = document.querySelector('#button-generate-image-message');
+    this.el.outputMessage = document.querySelector('#output-message');
+    this.el.buttonDownload = document.querySelector('#button-download');
     this.el.fileInputTileImage = document.querySelector('#input-tile');
     this.el.fileInputDepthMapImage = document.querySelector('#input-depth-map');
     this.el.dropContainerTileImage = document.querySelector('#drop-input-tile');
@@ -64,18 +65,24 @@ class Stereogram {
 
     // bind ui
     this.el.buttonGenerateImage.onclick = () => {
-      this.el.buttonGenerateImageMessage.innerText = 'Working...';
+      this.el.outputMessage.innerText = 'Working...';
+      this.el.outputMessage.classList.add('active');
       setTimeout(() => {
         this.generateImage();
+        this.el.outputMessage.innerText = 'Done.';
+        setTimeout(() => {
+          this.el.outputMessage.classList.remove('active');
+        }, 350);
       }, 50);
     };
     this.el.fileInputTileImage.onchange = () => {
       let file = this.el.fileInputTileImage.files[0];
-      this.setCanvasImageFromFile(this.ctxTile, file);
+      this.setCanvasImageFromFile(this.ctx.tile, file);
     };
+    this.el.buttonDownload.onclick = () => { this.downloadImage(); };
     this.el.fileInputDepthMapImage.onchange = () => {
       let file = this.el.fileInputDepthMapImage.files[0];
-      this.setCanvasImageFromFile(this.ctxDepthMap, file);
+      this.setCanvasImageFromFile(this.ctx.depthMap, file);
     };
     this.el.dropContainerTileImage.ondragover = this.el.dropContainerTileImage.ondragenter = evt => {
       evt.preventDefault();
@@ -88,7 +95,7 @@ class Stereogram {
       evt.preventDefault();
       if (evt.dataTransfer.items) {
         let file = evt.dataTransfer.items[0].getAsFile();
-        this.setCanvasImageFromFile(this.ctxTile, file);
+        this.setCanvasImageFromFile(this.ctx.tile, file);
       }
     };
     this.el.dropContainerDepthMapImage.ondragover = this.el.dropContainerDepthMapImage.ondragenter = evt => {
@@ -102,14 +109,14 @@ class Stereogram {
       evt.preventDefault();
       if (evt.dataTransfer.items) {
         let file = evt.dataTransfer.items[0].getAsFile();
-        this.setCanvasImageFromFile(this.ctxDepthMap, file);
+        this.setCanvasImageFromFile(this.ctx.depthMap, file);
       }
     };
     this.el.buttonDimensionsAuto.onclick = () => {
       let n = parseInt(this.el.inputStrips.value);
-      let width = (n + 1) * this.cvsTile.width;
-      let ratio = this.cvsDepthMap.height / this.cvsDepthMap.width;
-      let height = Math.round((n * this.cvsTile.width) * ratio);
+      let width = (n + 1) * this.canvas.tile.width;
+      let ratio = this.canvas.depthMap.height / this.canvas.depthMap.width;
+      let height = Math.round((n * this.canvas.tile.width) * ratio);
       this.el.inputWidth.value = width;
       this.el.inputHeight.value = height;
     };
@@ -133,17 +140,17 @@ class Stereogram {
 
   generateImage() {
     // set canvas size
-    this.cvsOutput.width = parseInt(this.el.inputWidth.value);
-    this.cvsOutput.height = parseInt(this.el.inputHeight.value);
+    this.canvas.output.width = parseInt(this.el.inputWidth.value);
+    this.canvas.output.height = parseInt(this.el.inputHeight.value);
 
     // set props from ui
     this.state = {};
     this.state.strips = parseInt(this.el.inputStrips.value);
-    this.state.tileWidth = this.cvsTile.width;
-    this.state.tileHeight = this.cvsTile.height;
+    this.state.tileWidth = this.canvas.tile.width;
+    this.state.tileHeight = this.canvas.tile.height;
     this.state.tileRatio = this.state.tileHeight / this.state.tileWidth;
-    this.state.depthStripWidth = this.cvsDepthMap.width / this.state.strips;
-    this.state.outputStripWidth = this.cvsOutput.width / (this.state.strips + 1);
+    this.state.depthStripWidth = this.canvas.depthMap.width / this.state.strips;
+    this.state.outputStripWidth = this.canvas.output.width / (this.state.strips + 1);
     this.state.depthScale = parseFloat(this.el.inputDepthScale.value);
     this.state.invert = this.el.checkboxInvert.checked ? true : false;
     this.state.preserveTileRatio = this.el.checkboxPreserveTileRatio.checked ? true : false;
@@ -152,22 +159,19 @@ class Stereogram {
 
     // get image data
     this.data = {};
-    this.data.tile = this.ctxTile.getImageData(0, 0, this.cvsTile.width, this.cvsTile.height);
-    this.data.depthMap = this.ctxDepthMap.getImageData(0, 0, this.cvsDepthMap.width, this.cvsDepthMap.height);
-    this.data.output = this.ctxOutput.createImageData(this.cvsOutput.width, this.cvsOutput.height);
+    this.data.tile = this.ctx.tile.getImageData(0, 0, this.canvas.tile.width, this.canvas.tile.height);
+    this.data.depthMap = this.ctx.depthMap.getImageData(0, 0, this.canvas.depthMap.width, this.canvas.depthMap.height);
+    this.data.output = this.ctx.output.createImageData(this.canvas.output.width, this.canvas.output.height);
 
     // generate image
-    for (let x=0; x<this.cvsOutput.width; x++) {
-      for (let y=0; y<this.cvsOutput.height; y++) {
+    for (let x=0; x<this.canvas.output.width; x++) {
+      for (let y=0; y<this.canvas.output.height; y++) {
         this.compute(x, y);
       }
     }
 
     // draw
-    this.ctxOutput.putImageData(this.data.output, 0, 0);
-
-    // finished
-    this.el.buttonGenerateImageMessage.innerText = '';
+    this.ctx.output.putImageData(this.data.output, 0, 0);
   }
 
   compute(x, y) {
@@ -188,10 +192,10 @@ class Stereogram {
     // get previous strip value
     } else {
       // get depth
-      let nX = (x - this.state.outputStripWidth) / (this.cvsOutput.width - this.state.outputStripWidth);
-      let nY = y / this.cvsOutput.height;
-      let depthMapX = nX * this.cvsDepthMap.width;
-      let depthMapY = nY * this.cvsDepthMap.height;
+      let nX = (x - this.state.outputStripWidth) / (this.canvas.output.width - this.state.outputStripWidth);
+      let nY = y / this.canvas.output.height;
+      let depthMapX = nX * this.canvas.depthMap.width;
+      let depthMapY = nY * this.canvas.depthMap.height;
       let depth = this.getDepth(this.getPixel(this.data.depthMap, depthMapX, depthMapY));
       if (this.state.invert) {
         depth = 1 - depth;
@@ -299,11 +303,27 @@ class Stereogram {
   }
 
   updateDepthMapOverlay() {
-    let rect = this.cvsDepthMap.getBoundingClientRect();
+    let rect = this.canvas.depthMap.getBoundingClientRect();
     this.el.depthMapOverlay.style.width = `${rect.width}px`;
     this.el.depthMapOverlay.style.height = `${rect.height}px`;
     let x = rect.width / parseInt(this.el.inputStrips.value);
     this.el.depthMapOverlay.style.backgroundSize = `${x}px 100%`;
+  }
+
+  downloadImage() {
+    let date = (new Date());
+    let YYYY = date.getFullYear();
+    let MM = (date.getMonth() + 1).toString().padStart(2, '0');
+    let DD = date.getDate().toString().padStart(2, '0');
+    let hh = date.getHours().toString().padStart(2, '0');
+    let mm = date.getMinutes().toString().padStart(2, '0');
+    let ss = date.getSeconds().toString().padStart(2, '0');
+    let filename = `stereogram_${YYYY}-${MM}-${DD}_${hh}:${mm}:${ss}.png`;
+    let data = this.canvas.output.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = data;
+    a.setAttribute('download', filename);
+    a.click();
   }
 }
 
