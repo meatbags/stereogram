@@ -30,6 +30,12 @@ class Stereogram {
         }
       }
     }
+    //this.ctx.tile.fillStyle = '#f00';
+    //this.ctx.tile.fillRect(this.canvas.tile.width-1, 0, 1, this.canvas.tile.height);
+    //this.ctx.tile.fillRect(0, this.canvas.tile.height-1, this.canvas.tile.width, 1);
+    //this.ctx.tile.fillStyle = '#00f';
+    //this.ctx.tile.fillRect(0, 0, 1, this.canvas.tile.height);
+    //this.ctx.tile.fillRect(0, 0, this.canvas.tile.width, 1);
 
     // create depth map
     this.canvas.depthMap.width = 150;
@@ -263,11 +269,11 @@ class Stereogram {
     }
   }
 
-  getPixel(data, x, y, sampleOffsetX=1, sampleOffsetY=1) {
-    x = Clamp(x, 0, data.width);
-    y = Clamp(y, 0, data.height);
-    let sampX = Math.floor(x % data.width);
-    let sampY = Math.floor(y % data.height);
+  getPixel(data, x, y) {
+    x = Clamp(x, 0, data.width - 1);
+    y = Clamp(y, 0, data.height - 1);
+    let sampX = Math.floor(x);
+    let sampY = Math.floor(y);
 
     // no interpolation
     if (this.state.interpolation == 'none' || (x - sampX == 0 && y - sampY == 0)) {
@@ -283,22 +289,24 @@ class Stereogram {
     } else {
       let tx = x - sampX;
       let ty = y - sampY;
+      let sampleOffsetX = 1;
+      let sampleOffsetY = 1;
       switch (this.state.interpolation) {
         case 'nearest-neighbour': {
           let offX = tx < 0.5 ? 0 : sampleOffsetX;
           let offY = ty < 0.5 ? 0 : sampleOffsetY;
-          return this.getPixel(data, Math.round(sampX + offX), Math.round(sampY + offY));
+          return this.getPixel(data, Math.floor(sampX + offX), Math.floor(sampY + offY));
           break;
         }
         case 'bilinear': {
           let TL = this.getPixel(data, sampX, sampY);
-          let TR = this.getPixel(data, Math.round(sampX + sampleOffsetX), sampY);
-          let BL = this.getPixel(data, sampX, Math.round(sampY + sampleOffsetY));
-          let BR = this.getPixel(data, Math.round(sampX + sampleOffsetX), Math.round(sampY + sampleOffsetY));
-          let R = Blend(Blend(TL[0], TR[0], tx), Blend(BL[0], BL[0], tx), ty);
-          let G = Blend(Blend(TL[1], TR[1], tx), Blend(BL[1], BL[1], tx), ty);
-          let B = Blend(Blend(TL[2], TR[2], tx), Blend(BL[2], BL[2], tx), ty);
-          let A = Blend(Blend(TL[3], TR[3], tx), Blend(BL[3], BL[3], tx), ty);
+          let TR = this.getPixel(data, Math.floor(sampX + sampleOffsetX), sampY);
+          let BL = this.getPixel(data, sampX, Math.floor(sampY + sampleOffsetY));
+          let BR = this.getPixel(data, Math.floor(sampX + sampleOffsetX), Math.floor(sampY + sampleOffsetY));
+          let R = Blend(Blend(TL[0], TR[0], tx), Blend(BL[0], BR[0], tx), ty);
+          let G = Blend(Blend(TL[1], TR[1], tx), Blend(BL[1], BR[1], tx), ty);
+          let B = Blend(Blend(TL[2], TR[2], tx), Blend(BL[2], BR[2], tx), ty);
+          let A = Blend(Blend(TL[3], TR[3], tx), Blend(BL[3], BR[3], tx), ty);
           return [R, G, B, A];
           break;
         }
@@ -306,14 +314,22 @@ class Stereogram {
           tx = Easing.cubic(tx);
           ty = Easing.cubic(ty);
           let TL = this.getPixel(data, sampX, sampY);
-          let TR = this.getPixel(data, Math.round(sampX + sampleOffsetX), sampY);
-          let BL = this.getPixel(data, sampX, Math.round(sampY + sampleOffsetY));
-          let BR = this.getPixel(data, Math.round(sampX + sampleOffsetX), Math.round(sampY + sampleOffsetY));
-          let R = Blend(Blend(TL[0], TR[0], tx), Blend(BL[0], BL[0], tx), ty);
-          let G = Blend(Blend(TL[1], TR[1], tx), Blend(BL[1], BL[1], tx), ty);
-          let B = Blend(Blend(TL[2], TR[2], tx), Blend(BL[2], BL[2], tx), ty);
-          let A = Blend(Blend(TL[3], TR[3], tx), Blend(BL[3], BL[3], tx), ty);
+          let TR = this.getPixel(data, Math.floor(sampX + sampleOffsetX), sampY);
+          let BL = this.getPixel(data, sampX, Math.floor(sampY + sampleOffsetY));
+          let BR = this.getPixel(data, Math.floor(sampX + sampleOffsetX), Math.floor(sampY + sampleOffsetY));
+          let R = Blend(Blend(TL[0], TR[0], tx), Blend(BL[0], BR[0], tx), ty);
+          let G = Blend(Blend(TL[1], TR[1], tx), Blend(BL[1], BR[1], tx), ty);
+          let B = Blend(Blend(TL[2], TR[2], tx), Blend(BL[2], BR[2], tx), ty);
+          let A = Blend(Blend(TL[3], TR[3], tx), Blend(BL[3], BR[3], tx), ty);
           return [R, G, B, A];
+          break;
+        }
+        case 'bicubic-nearest': {
+          tx = tx*tx*tx;
+          ty = ty*ty*ty;
+          let offX = tx < 0.5 ? 0 : sampleOffsetX;
+          let offY = ty < 0.5 ? 0 : sampleOffsetY;
+          return this.getPixel(data, Math.floor(sampX + offX), Math.floor(sampY + offY));
           break;
         }
         default:

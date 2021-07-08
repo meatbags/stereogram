@@ -55,13 +55,13 @@
               <label>Output Height:</label>
               <input id='input-height' value='400' min='50' step='1' type='number'></div>
             <div class='control'>
-              <label>Scale Dimensions:</label>
+              <label>Set Dimensions:</label>
               <div class='control__input'>
                 <button id='button-scale-tile' title='Scale dimensions to tile size'>tile</button>
-                <button id='button-scale-width' title='Scale width to height preserving tile ratio'>width</button>
-                <button id='button-scale-height' title='Scale height to width preserving tile ratio'>height</button>
+                <button id='button-scale-width' title='Set width from height preserving ratio'>set width</button>
+                <button id='button-scale-height' title='Set height from width preserving ratio'>set height</button>
                 <button id='button-scale-half' title='Halve dimensions'>&half;</button>
-                <button id='button-scale-2' title='Double dimensions'>2</button>
+                <button id='button-scale-2' title='Double dimensions'>x2</button>
               </div>
             </div>
             <div class='control'>
@@ -86,6 +86,7 @@
                 <option value='nearest-neighbour' selected>Nearest Neighbour</option>
                 <option value='bilinear'>Bilinear</option>
                 <option value='bicubic'>Bicubic</option>
+                <option value='bicubic-nearest'>Bicubic Nearest</option>
               </select>
             </div>
             <div class='control'>

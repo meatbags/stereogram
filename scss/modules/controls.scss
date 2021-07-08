@@ -25,6 +25,9 @@
     .control__input {
       width: 50%;
       display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: flex-start;
 
       input {
         width: 100%;
@@ -32,6 +35,7 @@
 
       button {
         margin-right: 3px;
+        margin-bottom: 3px;
 
         &:last-child {
           margin: 0;
