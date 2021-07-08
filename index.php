@@ -4,6 +4,7 @@
   <title>Stereogram</title>
   <link rel='stylesheet' href='build/style.min.css'>
   <script src='build/app.min.js'></script>
+  <link rel='icon' type='image/png' href='images/favicon.png' />
 </head>
 <body>
   <div class='wrapper'>
