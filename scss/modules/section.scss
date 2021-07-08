@@ -19,6 +19,10 @@
 
     .section__body {
       @include padding(1.25, 1.25);
+
+      input[type='file'] {
+        margin-bottom: $space / 2;
+      }
     }
 
     &.section__item--output {}
@@ -26,8 +30,7 @@
 
   #drop-input-tile, #drop-input-depth-map {
     &.drag-over {
-      opacity: 0.5;
-      outline: 1px solid red;
+      outline: 1px solid $white;
     }
   }
 }

@@ -50,13 +50,15 @@ class Stereogram {
     this.el.fileInputDepthMapImage = document.querySelector('#input-depth-map');
     this.el.dropContainerTileImage = document.querySelector('#drop-input-tile');
     this.el.dropContainerDepthMapImage = document.querySelector('#drop-input-depth-map');
-    this.el.buttonDimensionsAuto = document.querySelector('#button-dimensions-auto');
     this.el.inputWidth = document.querySelector('#input-width');
     this.el.inputHeight = document.querySelector('#input-height');
     this.el.inputStrips = document.querySelector('#input-strips');
     this.el.inputDepthScale = document.querySelector('#input-depth-scale');
-    this.el.inputScaleDimensions = document.querySelector('#input-scale-dimensions');
-    this.el.buttonScaleDimensions = document.querySelector('#button-scale-apply');
+    this.el.buttonScaleDimensionsTile = document.querySelector('#button-scale-tile');
+    this.el.buttonScaleDimensionsWidth = document.querySelector('#button-scale-width');
+    this.el.buttonScaleDimensionsHeight = document.querySelector('#button-scale-height');
+    this.el.buttonScaleDimensionsHalf = document.querySelector('#button-scale-half');
+    this.el.buttonScaleDimensions2 = document.querySelector('#button-scale-2');
     this.el.selectInterpolation = document.querySelector('#input-interpolation');
     this.el.selectDepthModel = document.querySelector('#input-depth-model');
     this.el.depthMapOverlay = document.querySelector('#depth-map-overlay');
@@ -112,24 +114,54 @@ class Stereogram {
         this.setCanvasImageFromFile(this.ctx.depthMap, file);
       }
     };
-    this.el.buttonDimensionsAuto.onclick = () => {
+
+    // dimensions
+    this.el.buttonScaleDimensionsTile.onclick = () => {
       let n = parseInt(this.el.inputStrips.value);
       let width = (n + 1) * this.canvas.tile.width;
       let ratio = this.canvas.depthMap.height / this.canvas.depthMap.width;
       let height = Math.round((n * this.canvas.tile.width) * ratio);
       this.el.inputWidth.value = width;
       this.el.inputHeight.value = height;
+      this.checkWarnings();
     };
-    this.el.buttonScaleDimensions.onclick = () => {
+    this.el.buttonScaleDimensionsWidth.onclick = () => {
+      let n = parseInt(this.el.inputStrips.value);
+      let height = parseInt(this.el.inputHeight.value) / n;
+      let ratio = this.canvas.depthMap.width / this.canvas.depthMap.height;
+      let width = Math.round(((n + 1) * height) * ratio);
+      this.el.inputWidth.value = width;
+      this.checkWarnings();
+    };
+    this.el.buttonScaleDimensionsHeight.onclick = () => {
+      let n = parseInt(this.el.inputStrips.value);
+      let width = parseInt(this.el.inputWidth.value) / (n + 1);
+      let ratio = this.canvas.depthMap.height / this.canvas.depthMap.width;
+      let height = Math.round((n * width) * ratio);
+      this.el.inputHeight.value = height;
+      this.checkWarnings();
+    };
+    this.el.buttonScaleDimensions2.onclick = () => {
       let width = parseInt(this.el.inputWidth.value);
       let height = parseInt(this.el.inputHeight.value);
-      let scale = parseFloat(this.el.inputScaleDimensions.value);
+      let scale = 2;
       this.el.inputWidth.value = width * scale;
       this.el.inputHeight.value = height * scale;
+      this.checkWarnings();
+    };
+    this.el.buttonScaleDimensionsHalf.onclick = () => {
+      let width = parseInt(this.el.inputWidth.value);
+      let height = parseInt(this.el.inputHeight.value);
+      let scale = 0.5;
+      this.el.inputWidth.value = width * scale;
+      this.el.inputHeight.value = height * scale;
+      this.checkWarnings();
     };
     this.el.inputStrips.onchange = () => {
       this.updateDepthMapOverlay();
     };
+    this.el.inputWidth.onchange = () => { this.checkWarnings(); };
+    this.el.inputHeight.onchange = () => { this.checkWarnings(); };
 
     // set up
     this.updateDepthMapOverlay();
@@ -156,6 +188,9 @@ class Stereogram {
     this.state.preserveTileRatio = this.el.checkboxPreserveTileRatio.checked ? true : false;
     this.state.depthModel = this.el.selectDepthModel.value;
     this.state.interpolation = this.el.selectInterpolation.value;
+    this.state.tileSampleOffsetX = this.state.outputStripWidth / this.state.tileWidth;
+    this.state.tileSampleOffsetY = this.state.tileSampleOffsetX * this.state.tileRatio;
+    console.log(this.state);
 
     // get image data
     this.data = {};
@@ -228,7 +263,7 @@ class Stereogram {
     }
   }
 
-  getPixel(data, x, y) {
+  getPixel(data, x, y, sampleOffsetX=1, sampleOffsetY=1) {
     x = Clamp(x, 0, data.width);
     y = Clamp(y, 0, data.height);
     let sampX = Math.floor(x % data.width);
@@ -250,16 +285,16 @@ class Stereogram {
       let ty = y - sampY;
       switch (this.state.interpolation) {
         case 'nearest-neighbour': {
-          let offX = tx < 0.5 ? 0 : 1;
-          let offY = ty < 0.5 ? 0 : 1;
-          return this.getPixel(data, sampX + offX, sampY + offY);
+          let offX = tx < 0.5 ? 0 : sampleOffsetX;
+          let offY = ty < 0.5 ? 0 : sampleOffsetY;
+          return this.getPixel(data, Math.round(sampX + offX), Math.round(sampY + offY));
           break;
         }
         case 'bilinear': {
           let TL = this.getPixel(data, sampX, sampY);
-          let TR = this.getPixel(data, sampX + 1, sampY);
-          let BL = this.getPixel(data, sampX, sampY + 1);
-          let BR = this.getPixel(data, sampX + 1, sampY + 1);
+          let TR = this.getPixel(data, Math.round(sampX + sampleOffsetX), sampY);
+          let BL = this.getPixel(data, sampX, Math.round(sampY + sampleOffsetY));
+          let BR = this.getPixel(data, Math.round(sampX + sampleOffsetX), Math.round(sampY + sampleOffsetY));
           let R = Blend(Blend(TL[0], TR[0], tx), Blend(BL[0], BL[0], tx), ty);
           let G = Blend(Blend(TL[1], TR[1], tx), Blend(BL[1], BL[1], tx), ty);
           let B = Blend(Blend(TL[2], TR[2], tx), Blend(BL[2], BL[2], tx), ty);
@@ -271,9 +306,9 @@ class Stereogram {
           tx = Easing.cubic(tx);
           ty = Easing.cubic(ty);
           let TL = this.getPixel(data, sampX, sampY);
-          let TR = this.getPixel(data, sampX + 1, sampY);
-          let BL = this.getPixel(data, sampX, sampY + 1);
-          let BR = this.getPixel(data, sampX + 1, sampY + 1);
+          let TR = this.getPixel(data, Math.round(sampX + sampleOffsetX), sampY);
+          let BL = this.getPixel(data, sampX, Math.round(sampY + sampleOffsetY));
+          let BR = this.getPixel(data, Math.round(sampX + sampleOffsetX), Math.round(sampY + sampleOffsetY));
           let R = Blend(Blend(TL[0], TR[0], tx), Blend(BL[0], BL[0], tx), ty);
           let G = Blend(Blend(TL[1], TR[1], tx), Blend(BL[1], BL[1], tx), ty);
           let B = Blend(Blend(TL[2], TR[2], tx), Blend(BL[2], BL[2], tx), ty);
@@ -308,6 +343,22 @@ class Stereogram {
     this.el.depthMapOverlay.style.height = `${rect.height}px`;
     let x = rect.width / parseInt(this.el.inputStrips.value);
     this.el.depthMapOverlay.style.backgroundSize = `${x}px 100%`;
+  }
+
+  checkWarnings() {
+    // warning width
+    if (parseInt(this.el.inputWidth.value) > 5000) {
+      this.el.inputWidth.classList.add('input-warning');
+    } else {
+      this.el.inputWidth.classList.remove('input-warning');
+    }
+
+    // warning height
+    if (parseInt(this.el.inputHeight.value) > 5000) {
+      this.el.inputHeight.classList.add('input-warning');
+    } else {
+      this.el.inputHeight.classList.remove('input-warning');
+    }
   }
 
   downloadImage() {

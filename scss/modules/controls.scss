@@ -12,6 +12,10 @@
     input {
       width: 50%;
 
+      &.input-warning {
+        color: red;
+      }
+
       &[type="checkbox"] {
         margin: 0;
         width: auto;
@@ -21,10 +25,17 @@
     .control__input {
       width: 50%;
       display: flex;
-      
+
       input {
         width: 100%;
-        margin-right: $space / 2;
+      }
+
+      button {
+        margin-right: 3px;
+
+        &:last-child {
+          margin: 0;
+        }
       }
     }
   }

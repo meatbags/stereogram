@@ -11,9 +11,9 @@
       <!-- tile -->
       <div class='section__item'>
         <div class='section__header'>Tile Image</div>
-        <div id='drop-input-tile' class='section__body'>
-          <input type='file' id='input-tile'><br />
-          <div class='canvas-wrapper'>
+        <div class='section__body'>
+          <input type='file' id='input-tile'>
+          <div id='drop-input-tile' class='canvas-wrapper'>
             <div class='canvas-wrapper__inner'>
               <canvas id='canvas-tile'></canvas>
             </div>
@@ -25,7 +25,7 @@
       <div class='section__item'>
         <div class='section__header'>Depth Map</div>
         <div class='section__body'>
-          <input type='file' id='input-depth-map'><br />
+          <input type='file' id='input-depth-map'>
           <div id='drop-input-depth-map' class='canvas-wrapper'>
             <div class='canvas-wrapper__inner'>
               <canvas id='canvas-depth-map'></canvas>
@@ -41,24 +41,26 @@
         <div class='section__body'>
           <div class='controls'>
             <div class='control'>
-              <label>Add Strips:</label>
+              <label>Strips (+1):</label>
               <input id='input-strips' value='8' min='1' step='1' type='number'>
             </div>
             <div class='control'>
-              <label>Width(px):</label>
+              <label>Output Width:</label>
               <div class='control__input'>
                 <input id='input-width' value='450' min='50' step='1' type='number'>
-                <button id='button-dimensions-auto'>Auto</button>
               </div>
             </div>
             <div class='control'>
-              <label>Height(px):</label>
+              <label>Output Height:</label>
               <input id='input-height' value='400' min='50' step='1' type='number'></div>
             <div class='control'>
               <label>Scale Dimensions:</label>
               <div class='control__input'>
-                <input id='input-scale-dimensions' value='1' min='1' step='1' type='number'>
-                <button id='button-scale-apply'>Apply</button>
+                <button id='button-scale-tile' title='Scale dimensions to tile size'>tile</button>
+                <button id='button-scale-width' title='Scale width to height preserving tile ratio'>width</button>
+                <button id='button-scale-height' title='Scale height to width preserving tile ratio'>height</button>
+                <button id='button-scale-half' title='Halve dimensions'>&half;</button>
+                <button id='button-scale-2' title='Double dimensions'>2</button>
               </div>
             </div>
             <div class='control'>
@@ -73,6 +75,10 @@
               </select>
             </div>
             <div class='control'>
+              <label>Invert Depth:</label>
+              <input id='input-invert' type='checkbox'>
+            </div>
+            <div class='control'>
               <label>Interpolation:</label>
               <select id='input-interpolation' value='nearest-neighbour'>
                 <option value='none'>None</option>
@@ -83,13 +89,8 @@
             </div>
             <div class='control'>
               <label>Preserve Tile Ratio:</label>
-              <input id='input-preserve-tile-ratio' type='checkbox'>
+              <input id='input-preserve-tile-ratio' type='checkbox' checked>
             </div>
-            <div class='control'>
-              <label>Invert Depth:</label>
-              <input id='input-invert' type='checkbox'>
-            </div>
-            <div class='control'>&nbsp;</div>
           </div>
         </div>
       </div>

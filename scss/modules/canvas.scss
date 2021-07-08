@@ -57,9 +57,10 @@
       z-index: 2;
       right: $space;
       top: $space;
+      display: flex;
 
       button {
-        margin: 0;
+        margin-left: 3px;
       }
     }
   }
