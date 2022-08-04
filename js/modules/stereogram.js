@@ -30,12 +30,6 @@ class Stereogram {
         }
       }
     }
-    //this.ctx.tile.fillStyle = '#f00';
-    //this.ctx.tile.fillRect(this.canvas.tile.width-1, 0, 1, this.canvas.tile.height);
-    //this.ctx.tile.fillRect(0, this.canvas.tile.height-1, this.canvas.tile.width, 1);
-    //this.ctx.tile.fillStyle = '#00f';
-    //this.ctx.tile.fillRect(0, 0, 1, this.canvas.tile.height);
-    //this.ctx.tile.fillRect(0, 0, this.canvas.tile.width, 1);
 
     // create depth map
     this.canvas.depthMap.width = 150;
